@@ -5,6 +5,8 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Dimension;
 import javax.swing.WindowConstants;
+import Utils.PasswordPolicy;
+import Utils.SecurityLogger;
 
 public class Frame extends javax.swing.JFrame {
 
@@ -272,6 +274,15 @@ public class Frame extends javax.swing.JFrame {
                 "Registration Error", javax.swing.JOptionPane.ERROR_MESSAGE);
             return;
         }
+        
+        if(!PasswordPolicy.isStrong(password)){
+            javax.swing.JOptionPane.showMessageDialog(
+                this, PasswordPolicy.requirementMsg(),
+                "Registration Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            // security audit trail
+            SecurityLogger.warn("Weak-password attempt during registration for '"+username+"'");
+            return;
+        }
         // --- server-side checks -------------------------------------------------
         if(main.sqlite.userExists(username.trim())){
             javax.swing.JOptionPane.showMessageDialog(
@@ -282,11 +293,13 @@ public class Frame extends javax.swing.JFrame {
         // --- create account (hashed & salted inside SQLite.addUser) ------------
         boolean success = main.sqlite.addUser(username.trim(), password, 2);
         if(success){
+            SecurityLogger.info("New account '"+username+"' created with role 2");
             javax.swing.JOptionPane.showMessageDialog(
                 this, "Registration successful! You can now log in.",
                 "Success", javax.swing.JOptionPane.INFORMATION_MESSAGE);
             loginNav();           // bring user back to the login screen
         }else{
+            SecurityLogger.error("DB failure while creating '"+username+"'", null);
             javax.swing.JOptionPane.showMessageDialog(
                 this, "Unexpected error creating account.",
                 "Registration Error", javax.swing.JOptionPane.ERROR_MESSAGE);
@@ -301,12 +314,14 @@ public class Frame extends javax.swing.JFrame {
 
             currentRole = main.sqlite.getUserRole(username.trim());
             applyRoleUI();
-
+            SecurityLogger.info("Login success for '"+username+"'");
+            
             javax.swing.JOptionPane.showMessageDialog(
                 this, "Login successful!",
                 "Welcome", javax.swing.JOptionPane.INFORMATION_MESSAGE);
             mainNav();
         } else {
+            SecurityLogger.warn("Login FAILED for '"+username+"'");
             javax.swing.JOptionPane.showMessageDialog(
                 this, "Invalid username or password.",
                 "Login Failed", javax.swing.JOptionPane.ERROR_MESSAGE);
