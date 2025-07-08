@@ -260,7 +260,9 @@ public class Frame extends javax.swing.JFrame {
         frameView.show(Container, "registerPnl");
     }
     
-    public void registerAction(String username, String password, String confpass){
+    public void registerAction(String username, char[] password, char[] confpass){
+        String passwordString = new String(password);
+        String confpassString = new String(confpass);
         // --- basic client-side guards -----------------------------------------
         if(username == null || username.trim().isEmpty()){
             javax.swing.JOptionPane.showMessageDialog(
@@ -268,14 +270,14 @@ public class Frame extends javax.swing.JFrame {
                 "Registration Error", javax.swing.JOptionPane.ERROR_MESSAGE);
             return;
         }
-        if(!password.equals(confpass)){
+        if(!passwordString.equals(confpassString)){
             javax.swing.JOptionPane.showMessageDialog(
                 this, "Passwords do not match.",
                 "Registration Error", javax.swing.JOptionPane.ERROR_MESSAGE);
             return;
         }
         
-        if(!PasswordPolicy.isStrong(password)){
+        if(!PasswordPolicy.isStrong(passwordString)){
             javax.swing.JOptionPane.showMessageDialog(
                 this, PasswordPolicy.requirementMsg(),
                 "Registration Error", javax.swing.JOptionPane.ERROR_MESSAGE);
@@ -291,7 +293,7 @@ public class Frame extends javax.swing.JFrame {
             return;
         }
         // --- create account (hashed & salted inside SQLite.addUser) ------------
-        boolean success = main.sqlite.addUser(username.trim(), password, 2);
+        boolean success = main.sqlite.addUser(username.trim(), passwordString, 2);
         if(success){
             SecurityLogger.info("New account '"+username+"' created with role 2");
             javax.swing.JOptionPane.showMessageDialog(
@@ -309,8 +311,8 @@ public class Frame extends javax.swing.JFrame {
     /**
     * Centralised login handler used by Login.java.
     */
-    public void loginAction(String username, String password){
-        if (main.sqlite.verifyCredentials(username.trim(), password.toCharArray())) {
+    public void loginAction(String username, char[] password){
+        if (main.sqlite.verifyCredentials(username.trim(), password)) {
 
             currentRole = main.sqlite.getUserRole(username.trim());
             applyRoleUI();
