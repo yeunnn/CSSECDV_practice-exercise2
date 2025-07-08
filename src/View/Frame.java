@@ -257,7 +257,54 @@ public class Frame extends javax.swing.JFrame {
     }
     
     public void registerAction(String username, String password, String confpass){
-        main.sqlite.addUser(username, password);
+        // --- basic client-side guards -----------------------------------------
+        if(username == null || username.trim().isEmpty()){
+            javax.swing.JOptionPane.showMessageDialog(
+                this, "Username can’t be blank.",
+                "Registration Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if(!password.equals(confpass)){
+            javax.swing.JOptionPane.showMessageDialog(
+                this, "Passwords do not match.",
+                "Registration Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        // --- server-side checks -------------------------------------------------
+        if(main.sqlite.userExists(username.trim())){
+            javax.swing.JOptionPane.showMessageDialog(
+                this, "Username already exists.",
+                "Registration Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        // --- create account (hashed & salted inside SQLite.addUser) ------------
+        boolean success = main.sqlite.addUser(username.trim(), password, 2);
+        if(success){
+            javax.swing.JOptionPane.showMessageDialog(
+                this, "Registration successful! You can now log in.",
+                "Success", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            loginNav();           // bring user back to the login screen
+        }else{
+            javax.swing.JOptionPane.showMessageDialog(
+                this, "Unexpected error creating account.",
+                "Registration Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+    * Centralised login handler used by Login.java.
+    */
+    public void loginAction(String username, String password){
+        if(main.sqlite.verifyCredentials(username.trim(), password.toCharArray())){
+            javax.swing.JOptionPane.showMessageDialog(
+                this, "Login successful!",
+                "Welcome", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            mainNav();            // send user to the role-based home screens
+        }else{
+            javax.swing.JOptionPane.showMessageDialog(
+                this, "Invalid username or password.",
+                "Login Failed", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

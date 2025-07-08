@@ -279,7 +279,7 @@ public class SQLite {
         return users;
     }
     
-    public void addUser(String username, String password, int role) {
+    /*public void addUser(String username, String password, int role) {
         String sql = "INSERT INTO users(username,password,role) VALUES('" + username + "','" + password + "','" + role + "')";
         
         try (Connection conn = DriverManager.getConnection(driverURL);
@@ -289,7 +289,7 @@ public class SQLite {
         } catch (Exception ex) {
             System.out.print(ex);
         }
-    }
+    }*/
     
     public void removeUser(String username) {
         String sql = "DELETE FROM users WHERE username='" + username + "';";
@@ -316,5 +316,89 @@ public class SQLite {
             System.out.print(ex);
         }
         return product;
+    }
+    
+    /**
+     * Check if a username already exists in the users table.
+     */
+    public boolean userExists(String username) {
+        String sql = "SELECT 1 FROM users WHERE username = ?";
+        try (Connection conn = DriverManager.getConnection(driverURL);
+             java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception ex) {
+            if (DEBUG_MODE > 0) System.err.println(ex);
+            return false;
+        }
+    }
+
+    /**
+     * Securely add a user (hashing the password and using PreparedStatement).
+     */
+    public boolean addUserSecure(String username, char[] password) {
+        if (userExists(username)) {
+            return false; // duplicate
+        }
+        String hashed = PasswordUtils.hash(password);
+        String sql = "INSERT INTO users(username,password) VALUES(?,?)";
+        try (Connection conn = DriverManager.getConnection(driverURL);
+             java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            pstmt.setString(2, hashed);
+            pstmt.executeUpdate();
+            return true;
+        } catch (Exception ex) {
+            if (DEBUG_MODE > 0) System.err.println(ex);
+            return false;
+        }
+    }
+    
+    /**
+    * Securely add a user (hash + salt) with a specific role.
+    * @return true if inserted, false if username already exists or error.
+    */
+   public boolean addUser(String username, String password, int role) {
+       if (userExists(username)) {
+           return false;                 // duplicate username
+       }
+       String hashed = PasswordUtils.hash(password.toCharArray());    // PBKDF2-HMAC-SHA-256
+       String sql = "INSERT INTO users(username,password,role) VALUES(?,?,?)";
+
+       try (Connection conn  = DriverManager.getConnection(driverURL);
+            java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+           pstmt.setString(1, username);
+           pstmt.setString(2, hashed);
+           pstmt.setInt   (3, role);
+           pstmt.executeUpdate();
+           return true;
+       } catch (Exception ex) {
+           if (DEBUG_MODE > 0) System.err.println(ex);
+           return false;
+       }
+   }
+
+
+    /**
+     * Verify credentials; returns true if match.
+     */
+    public boolean verifyCredentials(String username, char[] password) {
+        String sql = "SELECT password FROM users WHERE username = ?";
+        try (Connection conn = DriverManager.getConnection(driverURL);
+             java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    String stored = rs.getString("password");
+                    return PasswordUtils.verify(password, stored);
+                }
+            }
+        } catch (Exception ex) {
+            if (DEBUG_MODE > 0) System.err.println(ex);
+        }
+        return false;
     }
 }
