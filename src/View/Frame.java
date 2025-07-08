@@ -11,7 +11,7 @@ public class Frame extends javax.swing.JFrame {
     public Frame() {
         initComponents();
     }
-
+    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -215,6 +215,8 @@ public class Frame extends javax.swing.JFrame {
     private CardLayout contentView = new CardLayout();
     private CardLayout frameView = new CardLayout();
     
+    private int currentRole = -1;   // set after successful login
+    
     public void init(Main controller){
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         this.setTitle("CSSECDV - SECURITY Svcs");
@@ -295,17 +297,72 @@ public class Frame extends javax.swing.JFrame {
     * Centralised login handler used by Login.java.
     */
     public void loginAction(String username, String password){
-        if(main.sqlite.verifyCredentials(username.trim(), password.toCharArray())){
+        if (main.sqlite.verifyCredentials(username.trim(), password.toCharArray())) {
+
+            currentRole = main.sqlite.getUserRole(username.trim());
+            applyRoleUI();
+
             javax.swing.JOptionPane.showMessageDialog(
                 this, "Login successful!",
                 "Welcome", javax.swing.JOptionPane.INFORMATION_MESSAGE);
-            mainNav();            // send user to the role-based home screens
-        }else{
+            mainNav();
+        } else {
             javax.swing.JOptionPane.showMessageDialog(
                 this, "Invalid username or password.",
                 "Login Failed", javax.swing.JOptionPane.ERROR_MESSAGE);
         }
     }
+    
+    /**
+    * Show the correct home panel and hide nav-buttons the user
+    * should not see, based on the role codes in the spec.
+    */
+   private void applyRoleUI() {
+       
+       // hide everything first
+       adminBtn.setVisible(false);
+       managerBtn.setVisible(false);
+       staffBtn.setVisible(false);
+       clientBtn.setVisible(false);
+
+       switch (currentRole) {
+           case 5: // Administrator
+               adminBtn.setVisible(true);
+               adminHomePnl.showPnl("home");
+               contentView.show(Content, "adminHomePnl");
+               adminHomePnl.refreshPrivileges(currentRole);
+               break;
+
+           case 4: // Manager
+               managerBtn.setVisible(true);
+               managerHomePnl.showPnl("home");
+               contentView.show(Content, "managerHomePnl");
+               managerHomePnl.refreshPrivileges(currentRole);
+               break;
+
+           case 3: // Staff
+               staffBtn.setVisible(true);
+               staffHomePnl.showPnl("home");
+               contentView.show(Content, "staffHomePnl");
+               staffHomePnl.refreshPrivileges(currentRole);
+               break;
+
+           case 2: // Client
+               clientBtn.setVisible(true);
+               clientHomePnl.showPnl("home");
+               contentView.show(Content, "clientHomePnl");
+               clientHomePnl.refreshPrivileges(currentRole);
+               break;
+
+           default: // Disabled or unknown
+               javax.swing.JOptionPane.showMessageDialog(
+                   this, "Your account is disabled or unknown.",
+                   "Access Denied", javax.swing.JOptionPane.ERROR_MESSAGE);
+               // stay on login screen
+               frameView.show(Container, "loginPnl");
+       }
+   }
+   
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Container;

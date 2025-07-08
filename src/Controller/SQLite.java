@@ -334,27 +334,6 @@ public class SQLite {
             return false;
         }
     }
-
-    /**
-     * Securely add a user (hashing the password and using PreparedStatement).
-     */
-    public boolean addUserSecure(String username, char[] password) {
-        if (userExists(username)) {
-            return false; // duplicate
-        }
-        String hashed = PasswordUtils.hash(password);
-        String sql = "INSERT INTO users(username,password) VALUES(?,?)";
-        try (Connection conn = DriverManager.getConnection(driverURL);
-             java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, username);
-            pstmt.setString(2, hashed);
-            pstmt.executeUpdate();
-            return true;
-        } catch (Exception ex) {
-            if (DEBUG_MODE > 0) System.err.println(ex);
-            return false;
-        }
-    }
     
     /**
     * Securely add a user (hash + salt) with a specific role.
@@ -401,4 +380,26 @@ public class SQLite {
         }
         return false;
     }
+    
+    /**
+    * Return the role code of the given user or -1 if not found.
+    * Roles (from the spec) – 5:Admin  4:Manager  3:Staff  2:Client  1:Disabled
+    */
+   public int getUserRole(String username) {
+       String sql = "SELECT role FROM users WHERE username = ?";
+       try (Connection conn = DriverManager.getConnection(driverURL);
+            java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+           pstmt.setString(1, username);
+           try (ResultSet rs = pstmt.executeQuery()) {
+               if (rs.next()) {
+                   return rs.getInt("role");
+               }
+           }
+       } catch (Exception ex) {
+           if (DEBUG_MODE > 0) System.err.println(ex);
+       }
+       return -1;        // not found / error
+   }
+
 }

@@ -32,6 +32,18 @@ public class ManagerHome extends javax.swing.JPanel {
         initComponents();
     }
     
+    /**
+    * Shows / hides buttons according to the role matrix.
+    * 5 Admin • 4 Manager • 3 Staff • 2 Client • 1 Disabled
+    */
+    public void refreshPrivileges(int role){
+        // role: 5 Admin, 4 Manager, 3 Staff, 2 Client, 1 Disabled
+        historyBtn .setVisible(role >= 3);  // Admin, Manager, Staff
+        logsBtn    .setVisible(role >= 4);  // Admin, Manager
+        productsBtn.setVisible(role >= 3);  // Admin, Manager, Staff
+        usersBtn   .setVisible(role >= 5);  // Admin only
+    }
+    
     public void init(SQLite sqlite){
         mgmtHistory = new MgmtHistory(sqlite);
         mgmtLogs = new MgmtLogs(sqlite);
